@@ -1,93 +1,100 @@
-# simplon-kubernetes-velero-azure
+# <img src="https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/kubernetes.svg" alt="Kubernetes" width="30" height="30" style="vertical-align:middle; filter: invert(34%) sepia(85%) saturate(3627%) hue-rotate(211deg) brightness(97%) contrast(91%);" /> Kubernetes/KIND & Velero <img src="https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/minio.svg" alt="MinIO" width="30" height="30" style="vertical-align:middle; filter: invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(94%) contrast(97%);" />
 
+Local Kubernetes lab: back up and restore cluster resources with **Velero**,
+storing the backups in **MinIO** deployed inside the **KIND** cluster.
 
+Full brief: [`docs/CONSIGNES.md`](docs/CONSIGNES.md).
 
-## Getting started
+## Requirements
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+- Docker (running)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/)
+- [KIND](https://kind.sigs.k8s.io/)
+- [Helm](https://helm.sh/)
+- [Velero CLI](https://github.com/vmware-tanzu/velero/releases) v1.18.2
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## Credentials
 
-## Add your files
+Never committed. Copy the examples and fill in the real values:
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+```bash
+cp .env.example .env                              # MinIO root user
+cp .credentials-velero.example .credentials-velero # MinIO access key for Velero
+```
+
+## Quickstart
+
+```bash
+make create     # KIND cluster
+make app        # nginx Deployment + Service, namespace velero-lab
+make minio      # MinIO, root credentials read from .env
+
+make console    # http://127.0.0.1:9001
+                # create the "velero" bucket and an access key,
+                # then write both values into .credentials-velero
+
+make velero     # Velero server, AWS plugin pointed at the MinIO Service
+make check      # backup location must be Available before going further
+```
+
+## Backup and restore
+
+```bash
+make backup     # back up the velero-lab namespace
+make drop       # delete it
+make restore    # bring it back from the backup
+```
+
+## Cluster management
+
+```bash
+make help       # list every shortcut
+make status     # clusters and node state
+make stop       # power off without deleting
+make start      # power back on
+make destroy    # delete the cluster
+```
+
+## Structure
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/WhiteMuush/simplon-kubernetes-velero-azure.git
-git branch -M main
-git push -uf origin main
+.
+├── kind-config.yaml               # cluster definition (1 node, port 8080 -> 30080)
+├── deployment.yaml                # nginx Deployment (3 replicas, ns velero-lab)
+├── service.yaml                   # nginx Service (NodePort 30080)
+├── minio/values.yaml              # MinIO Helm values (no credentials inside)
+├── .env.example                   # MinIO root credentials template
+├── .credentials-velero.example    # Velero access key template
+└── docs/
+    └── CONSIGNES.md               # project brief + diagrams
 ```
 
-## Integrate with your tools
+## Documentation
 
-* [Set up project integrations](https://gitlab.com/WhiteMuush/simplon-kubernetes-velero-azure/-/settings/integrations)
+**Velero**
 
-## Collaborate with your team
+- [How Velero works](https://velero.io/docs/v1.18/how-velero-works/)
+- [MinIO setup guide](https://velero.io/docs/v1.18/contributions/minio/): the guide followed here, note it runs MinIO in the `velero` namespace, hence a different `s3Url`
+- [Backup reference](https://velero.io/docs/v1.18/backup-reference/): `--include-namespaces` vs `--selector`
+- [Restore reference](https://velero.io/docs/v1.18/restore-reference/)
+- [BackupStorageLocation](https://velero.io/docs/v1.18/api-types/backupstoragelocation/): turns `Unavailable` when the credentials are wrong
+- [AWS plugin](https://github.com/vmware-tanzu/velero-plugin-for-aws): plugin/Velero compatibility matrix
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+**MinIO**
 
-## Test and Deploy
+- [Helm chart values](https://github.com/minio/minio/tree/master/helm/minio): `existingSecret`, `persistence`, `mode`
+- [Access key management](https://min.io/docs/minio/kubernetes/upstream/administration/identity-access-management/minio-user-management.html)
 
-Use the built-in continuous integration in GitLab.
+**Kubernetes and tooling**
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+- [KIND configuration](https://kind.sigs.k8s.io/docs/user/configuration/): `extraPortMappings`
+- [Secrets](https://kubernetes.io/docs/concepts/configuration/secret/): base64 encoded, not encrypted
+- [Service type NodePort](https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport)
+- [helm install](https://helm.sh/docs/helm/helm_install/): `-f` and `--version`
 
-***
+## Result
 
-# Editing this README
+Namespace deleted, then rebuilt from the backup: the 3 pods, the Service and
+the Deployment are back.
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+![Restoring the velero-lab namespace with Velero](docs/screenshots/restore.png)
