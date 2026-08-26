@@ -35,3 +35,39 @@ variable "kubernetes_vm_size" {
   type        = string
   default     = "Standard_B2s"
 }
+
+## Blob Storage + container + Blob Storage Variables
+
+variable "git_commit" {
+  description = "Short SHA of the commit that produced this infrastructure."
+  type        = string
+  default     = "unknown"
+}
+
+locals {
+  common_tags = {
+    Environment = "Develop"
+    ManagedBy   = "terraform"
+    GitCommit   = var.git_commit
+    TfState     = "aks-velero"
+  }
+}
+
+variable "storage_account_name" {
+  description = "Storage Account name"
+  type        = string
+  default     = "mpaccountstorage"
+}
+
+variable "storage_blob_name" {
+  description = "Storage Blob name"
+  type        = string
+  default     = "velero-content.zip"
+}
+
+variable "storage_blob_source" {
+  description = "Storage source name"
+  type        = string
+  default     = "velero-local-file.zip"
+
+}
