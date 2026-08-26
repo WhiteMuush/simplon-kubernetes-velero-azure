@@ -1,0 +1,8 @@
+# Normalise every text file to LF, in the repository and in the working tree.
+# core.autocrlf=true is set globally on this machine: without this file, git
+# hands CRLF scripts back on checkout and /bin/sh refuses to parse them.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.zip binary

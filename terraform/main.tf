@@ -9,7 +9,7 @@ terraform {
   }
 }
 
-# Configure the Microsoft Azure Provider
+## Configure the Microsoft Azure Provider
 provider "azurerm" {
   features {}
   subscription_id = var.subscription_id
@@ -21,6 +21,11 @@ resource "azurerm_kubernetes_cluster" "velero" {
   location            = var.location
   resource_group_name = var.ressource_group
   dns_prefix          = var.dns_prefix
+
+  # Both are required by Workload Identity: the issuer signs the tokens, the
+  # webhook injects them into the annotated pods.
+  oidc_issuer_enabled       = true
+  workload_identity_enabled = true
 
   default_node_pool {
     name       = "default"
@@ -41,7 +46,7 @@ resource "azurerm_kubernetes_cluster" "velero" {
   }
 }
 
-## Azure Account + container + Blob Storage configuration
+## Azure Storage account + container that will hold the Velero backups
 
 resource "azurerm_storage_account" "velero" {
   name                     = var.storage_account_name
@@ -53,14 +58,34 @@ resource "azurerm_storage_account" "velero" {
 }
 
 resource "azurerm_storage_container" "velero" {
-  name                  = "content"
+  name                  = var.storage_container_name
   storage_account_id    = azurerm_storage_account.velero.id
   container_access_type = "private"
 }
 
-resource "azurerm_storage_blob" "velero" {
-  name                 = var.storage_blob_name
-  storage_container_id = azurerm_storage_container.velero.id
-  type                 = "Block"
-  source               = var.storage_blob_source
+## Workload Identity, so Velero reaches the storage account without any key
+
+resource "azurerm_user_assigned_identity" "velero" {
+  name                = var.velero_identity_name
+  resource_group_name = var.ressource_group
+  location            = var.location
+  tags                = local.common_tags
+}
+
+# Scoped to the storage account only, not to the whole subscription as the
+# plugin documentation suggests.
+resource "azurerm_role_assignment" "velero_storage" {
+  scope                = azurerm_storage_account.velero.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = azurerm_user_assigned_identity.velero.principal_id
+}
+
+# Trust link between the two worlds: the "velero" service account of the
+# "velero" namespace, in this cluster, may act as the identity above.
+resource "azurerm_federated_identity_credential" "velero" {
+  name                      = "velero-federated-credential"
+  user_assigned_identity_id = azurerm_user_assigned_identity.velero.id
+  audience                  = ["api://AzureADTokenExchange"]
+  issuer                    = azurerm_kubernetes_cluster.velero.oidc_issuer_url
+  subject                   = "system:serviceaccount:velero:velero"
 }
