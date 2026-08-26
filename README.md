@@ -1,4 +1,4 @@
-# Velero on AKS with Azure Blob Storage
+# <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-original.svg" alt="Kubernetes" width="30" height="30" /> Velero on AKS with Azure Blob Storage <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/azure/azure-original.svg" alt="Azure" width="30" height="30" />
 
 Back up and restore Kubernetes resources with **Velero**, on a managed **AKS**
 cluster, storing the backups in an **Azure Blob Storage** container.
