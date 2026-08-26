@@ -18,3 +18,7 @@ backend.hcl
 *.auto.tfvars
 .env
 .idea
+
+# Saved plans (can contain sensitive values)
+tfplan.bin
+*.tfplan

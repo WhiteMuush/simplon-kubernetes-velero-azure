@@ -33,10 +33,10 @@ variable "kubernetes_name" {
 variable "kubernetes_vm_size" {
   description = "AKS vm size."
   type        = string
-  default     = "Standard_B2s"
+  default     = "Standard_D2_v3"
 }
 
-## Blob Storage + container + Blob Storage Variables
+## Storage account + container variables
 
 variable "git_commit" {
   description = "Short SHA of the commit that produced this infrastructure."
@@ -59,15 +59,15 @@ variable "storage_account_name" {
   default     = "mpaccountstorage"
 }
 
-variable "storage_blob_name" {
-  description = "Storage Blob name"
+variable "storage_container_name" {
+  description = "Storage Container name"
   type        = string
-  default     = "velero-content.zip"
+  default     = "storagevelerocontainer"
 }
+## Velero identity variables
 
-variable "storage_blob_source" {
-  description = "Storage source name"
+variable "velero_identity_name" {
+  description = "Name of the managed identity used by Velero."
   type        = string
-  default     = "velero-local-file.zip"
-
+  default     = "id-velero"
 }

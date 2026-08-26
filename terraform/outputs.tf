@@ -18,3 +18,8 @@ output "kube_config_raw" {
   value       = azurerm_kubernetes_cluster.velero.kube_config_raw
   sensitive   = true
 }
+
+output "velero_identity_client_id" {
+  description = "Client ID of the Velero managed identity, set as the service account annotation."
+  value       = azurerm_user_assigned_identity.velero.client_id
+}
