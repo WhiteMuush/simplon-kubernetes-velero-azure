@@ -22,7 +22,6 @@ resource "azurerm_kubernetes_cluster" "velero" {
   dns_prefix          = var.dns_prefix
 
   default_node_pool {
-    mode       = "Manual"
     name       = "default"
     node_count = 1
     vm_size    = var.kubernetes_vm_size
